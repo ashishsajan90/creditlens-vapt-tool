@@ -28,10 +28,23 @@ except Exception as e:
   master_df = pd.DataFrame()
 
 # --- TOP DASHBOARD HEADER ---
-header_col1, header_col2 = st.columns([3, 1])
+header_col1, header_col2 = st.columns([3, 1], vertical_alignment="center")
 
 with header_col1:
-  st.title("🛡️ CreditLens VAPT Alignment Engine")
+  # Create a nested layout for Logo + Title side-by-side
+  logo_col, title_col = st.columns([0.08, 0.92], vertical_alignment="center")
+
+  with logo_col:
+    st.image("Logo.svg", width=45)
+
+  with title_col:
+    # Using a clean markdown header to align perfectly with the logo height
+    st.markdown(
+        "<h1 style='margin: 0; padding: 0; font-size: 1.8rem;'>CreditLens VAPT"
+        " Alignment Engine</h1>",
+        unsafe_allow_html=True,
+    )
+
   st.markdown(
       "Automated cross-referencing, semantic vulnerability matching, vendor"
       " response mapping, and executive report generation."
