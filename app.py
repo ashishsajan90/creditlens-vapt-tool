@@ -142,9 +142,11 @@ header_col1, header_col2 = st.columns([3, 1], vertical_alignment="center")
 with header_col1:
   st.markdown(
       f"""
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0px;">
-        <img src="data:image/png;base64,{logo_b64}" style="height: 36px; width: auto; object-fit: contain; flex-shrink: 0; display: block;" />
-        <h1 style="margin: 0; padding: 0; font-size: 1.7rem; font-weight: 700; line-height: 1.1;">CreditLens VAPT Alignment Engine</h1>
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0px; padding-top: 4px;">
+        <div style="padding: 3px; display: flex; align-items: center; flex-shrink: 0;">
+            <img src="data:image/png;base64,{logo_b64}" style="height: 32px; width: auto; object-fit: contain; display: block;" />
+        </div>
+        <h1 style="margin: 0; padding: 0; font-size: 1.7rem; font-weight: 700; line-height: 1.2;">CreditLens VAPT Alignment Engine</h1>
     </div>
     """,
       unsafe_allow_html=True,
