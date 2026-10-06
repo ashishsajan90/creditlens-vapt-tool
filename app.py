@@ -9,7 +9,7 @@ import streamlit as st
 # Page Configuration
 st.set_page_config(
     page_title="CreditLens VAPT Cross-Referencer",
-    page_icon="🛡️",
+    page_icon="favicon.ico️",
     layout="wide",
 )
 
