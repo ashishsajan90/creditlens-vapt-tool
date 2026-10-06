@@ -48,9 +48,46 @@ st.markdown(
 def load_master_tracker():
   return pd.read_excel("CL_Vulnerability_Master_Tracker.xlsx")
 
-# --- SIDEBAR DOWNLOAD BUTTON FOR MASTER TRACKER ---
+
+# Load data safely
+try:
+  master_df = load_master_tracker()
+except Exception as e:
+  st.sidebar.error(f"❌ Error loading Master Tracker: {e}")
+  master_df = pd.DataFrame()
+
+
+# --- SECURE FILE SIGNATURE VALIDATION (MAGIC NUMBERS) ---
+def validate_file_signature(uploaded_file):
+  """Inspects the binary header bytes of an uploaded file to guarantee
+
+  it is genuinely a PDF or Excel document, preventing extension spoofing.
+  """
+  try:
+    header = uploaded_file.read(8)
+    uploaded_file.seek(
+        0
+    )  # Reset pointer back to start for subsequent readers
+
+    # 1. Check for PDF signature (%PDF-)
+    if header.startswith(b"%PDF"):
+      return True, "pdf"
+
+    # 2. Check for modern Excel .xlsx signature (ZIP container format: PK..)
+    if header.startswith(b"PK\x03\x04"):
+      return True, "xlsx"
+
+    # 3. Check for legacy Excel .xls signature (OLE Compound File format)
+    if header.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+      return True, "xls"
+
+    return False, None
+  except Exception:
+    return False, None
+
+
+# --- SIDEBAR TEMPLATE DOWNLOADER ---
 with st.sidebar:
-  st.divider()
   st.subheader("📋 Master Baseline Template")
   try:
     with open("CL_Vulnerability_Master_Tracker.xlsx", "rb") as f:
@@ -69,13 +106,6 @@ with st.sidebar:
     )
   except Exception:
     st.warning("Master tracker file not found in root directory.")
-
-# Load data safely
-try:
-  master_df = load_master_tracker()
-except Exception as e:
-  st.sidebar.error(f"❌ Error loading Master Tracker: {e}")
-  master_df = pd.DataFrame()
 
 
 # Helper to convert local SVG to base64 for seamless HTML embedding
@@ -139,39 +169,52 @@ with st.container():
 bank_df = pd.DataFrame()
 
 if uploaded_file is not None and not master_df.empty:
-  file_extension = uploaded_file.name.split(".")[-1].lower()
+  # SECURITY: Validate true file signature bytes
+  is_valid_sig, detected_type = validate_file_signature(uploaded_file)
 
-  if file_extension in ["xlsx", "xls"]:
-    bank_df = pd.read_excel(uploaded_file)
-  elif file_extension == "pdf":
-    with st.spinner("Extracting tables from PDF report..."):
-      extracted_rows = []
+  if not is_valid_sig:
+    st.error(
+        "❌ **Security Warning:** The uploaded file does not match a valid,"
+        " untampered PDF or Excel file format."
+    )
+  else:
+    if detected_type in ["xlsx", "xls"]:
       try:
-        with pdfplumber.open(uploaded_file) as pdf:
-          for page in pdf.pages:
-            tables = page.extract_tables()
-            for table in tables:
-              for row in table:
-                if (
-                    len(row) >= 2
-                    and row[0]
-                    and row[1]
-                    and "vulnerability" not in str(row[0]).lower()
-                ):
-                  extracted_rows.append({
-                      "Vulnerability Name": str(row[0]).strip(),
-                      "Vulnerability Description & Impact": str(row[1]).strip(),
-                  })
-        bank_df = pd.DataFrame(extracted_rows)
+        bank_df = pd.read_excel(uploaded_file)
       except Exception as e:
-        st.error(f"❌ Error reading PDF file: {e}")
+        st.error(f"❌ Error reading Excel file: {e}")
 
-    if bank_df.empty:
-      st.warning(
-          "⚠️ Could not automatically extract structured tables from this PDF."
-          " Please ensure the PDF has clean formatted tables or use an Excel"
-          " sheet."
-      )
+    elif detected_type == "pdf":
+      with st.spinner("Extracting tables from PDF report..."):
+        extracted_rows = []
+        try:
+          with pdfplumber.open(uploaded_file) as pdf:
+            for page in pdf.pages:
+              tables = page.extract_tables()
+              for table in tables:
+                for row in table:
+                  if (
+                      len(row) >= 2
+                      and row[0]
+                      and row[1]
+                      and "vulnerability" not in str(row[0]).lower()
+                  ):
+                    extracted_rows.append({
+                        "Vulnerability Name": str(row[0]).strip(),
+                        "Vulnerability Description & Impact": str(
+                            row[1]
+                        ).strip(),
+                    })
+          bank_df = pd.DataFrame(extracted_rows)
+        except Exception as e:
+          st.error(f"❌ Error reading PDF file: {e}")
+
+      if bank_df.empty:
+        st.warning(
+            "⚠️ Could not automatically extract structured tables from this PDF."
+            " Please ensure the PDF has clean formatted tables or use an Excel"
+            " sheet."
+        )
 
   if not bank_df.empty:
     st.subheader("📥 Preview of Uploaded Findings")
