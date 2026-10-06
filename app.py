@@ -49,18 +49,18 @@ st.divider()
 
 # --- UPLOAD SECTION IN A CLEAN CONTAINER ---
 with st.container():
-  st.subheader("📁 Step 1: Import External Findings")
+  st.subheader("📁 Import External Findings")
 
   st.info(
       "ℹ️ **Expected File Format:** Ensure your uploaded Excel file is"
       " structured with the **Vulnerability Name in the first column** and the"
-      " **Vulnerability Description & Impact in the second column**."
+      " **Vulnerability Description in the second column**."
   )
 
   uploaded_file = st.file_uploader(
       "Upload the client or bank raw VAPT Excel report (.xlsx or .xls)",
       type=["xlsx", "xls"],
-      help="Column 1: Vulnerability Name | Column 2: Description & Impact",
+      help="Column 1: Vulnerability Name | Column 2: Description",
   )
 
 if uploaded_file is not None and not master_df.empty:
@@ -266,10 +266,10 @@ if uploaded_file is not None and not master_df.empty:
       timestamp_str = datetime.now().strftime("%d-%b-%y %H-%M-%S")
       output_filename = f"Enriched_VAPT_Report_{timestamp_str}.xlsx"
 
-      st.success("✨ Report successfully styled and generated!")
+      st.success("✨ Report successfully generated!")
 
       st.download_button(
-          label="📥 Download Beautified Enriched Report (Excel)",
+          label="📥 Download The Enriched Report (Excel)",
           data=final_output,
           file_name=output_filename,
           mime=(
