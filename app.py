@@ -343,7 +343,7 @@ if uploaded_file is not None and not master_df.empty:
         final_output.seek(0)
 
         # Filename with Timestamp (dd-mmm-yy hh:mm:ss)
-        timestamp_str = datetime.now().strftime("%d-%b-%y %H-%M-%S")
+        timestamp_str = datetime.now().strftime("%d-%b-%y_%H:%M:%S")
         output_filename = f"Enriched_VAPT_Report_{timestamp_str}.xlsx"
 
         st.success("✨ Report successfully generated!")
