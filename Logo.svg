@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Background Shield Shape -->
+  <path d="M32 4 L56 14 V32 C56 46 45 56 32 60 C19 56 8 46 8 32 V14 Z" fill="#1F4E78"/>
+  <!-- Inner Lens / Checkmark Element -->
+  <circle cx="32" cy="28" r="10" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+  <path d="M27 28 L31 32 L39 23" fill="none" stroke="#C6EFCE" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

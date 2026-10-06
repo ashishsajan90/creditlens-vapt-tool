@@ -134,7 +134,7 @@ def get_image_base64(path):
     return ""
 
 
-logo_b64 = get_image_base64("Logo.png")
+logo_b64 = get_image_base64("Logo.svg")
 
 # --- ULTRA-COMPACT TOP DASHBOARD HEADER ---
 header_col1, header_col2 = st.columns([3, 1], vertical_alignment="center")
