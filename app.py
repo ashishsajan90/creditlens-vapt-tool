@@ -15,19 +15,27 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- CUSTOM CSS TO REDUCE DEAD SPACE & PADDING ---
+# --- CUSTOM CSS TO MINIMIZE HEADER DEAD SPACE ---
 st.markdown(
     """
     <style>
-        /* Reduce the massive default top and bottom padding of the app container */
+        /* Tighten up top padding of the app container */
         .block-container {
-            padding-top: 1.2rem;
-            padding-bottom: 2rem;
+            padding-top: 0.5rem;
+            padding-bottom: 1.5rem;
         }
-        /* Tighten divider margins */
+        /* Reduce extra margins on headers and paragraphs */
+        h1 {
+            margin-bottom: 0px !important;
+            padding-bottom: 0px !important;
+        }
+        p {
+            margin-bottom: 0px !important;
+        }
+        /* Tighten divider spacing */
         hr {
-            margin-top: 1rem;
-            margin-bottom: 1rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.8rem;
         }
     </style>
     """,
@@ -60,21 +68,21 @@ def get_svg_base64(path):
 
 logo_b64 = get_svg_base64("Logo.svg")
 
-# --- COMPACT TOP DASHBOARD HEADER ---
+# --- ULTRA-COMPACT TOP DASHBOARD HEADER ---
 header_col1, header_col2 = st.columns([3, 1], vertical_alignment="center")
 
 with header_col1:
   st.markdown(
       f"""
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0px;">
-        <img src="data:image/svg+xml;base64,{logo_b64}" width="40" style="flex-shrink: 0;" />
-        <h1 style="margin: 0; padding: 0; font-size: 1.8rem; font-weight: 700; line-height: 1.1;">CreditLens VAPT Alignment Engine</h1>
+        <img src="data:image/svg+xml;base64,{logo_b64}" width="38" style="flex-shrink: 0;" />
+        <h1 style="margin: 0; padding: 0; font-size: 1.7rem; font-weight: 700; line-height: 1.1;">CreditLens VAPT Alignment Engine</h1>
     </div>
     """,
       unsafe_allow_html=True,
   )
   st.markdown(
-      "<p style='margin: 2px 0 0 0; color: #95a5a6; font-size: 0.9rem;'>Automated"
+      "<p style='margin: 2px 0 0 0; color: #95a5a6; font-size: 0.85rem;'>Automated"
       " cross-referencing, semantic vulnerability matching, vendor response"
       " mapping, and executive report generation.</p>",
       unsafe_allow_html=True,
@@ -146,8 +154,7 @@ if uploaded_file is not None and not master_df.empty:
 
   if not bank_df.empty:
     st.subheader("📥 Preview of Uploaded Findings")
-    # Display full dataframe (removed .head())
-    st.dataframe(bank_df.head(), use_container_width=True)
+    st.dataframe(bank_df, use_container_width=True)
 
     if st.button("🚀 Run Smart Cross-Reference & Generate Response"):
       with st.spinner(
@@ -342,8 +349,8 @@ if uploaded_file is not None and not master_df.empty:
         wb.save(final_output)
         final_output.seek(0)
 
-        # Filename with Timestamp (dd-mmm-yy hh:mm:ss)
-        timestamp_str = datetime.now().strftime("%d-%b-%y_%H:%M:%S")
+        # Filename with Timestamp (safely using underscore format)
+        timestamp_str = datetime.now().strftime("%d-%b-%y_%H%M%S")
         output_filename = f"Enriched_VAPT_Report_{timestamp_str}.xlsx"
 
         st.success("✨ Report successfully generated!")
