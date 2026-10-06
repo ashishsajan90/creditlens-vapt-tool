@@ -143,7 +143,9 @@ with header_col1:
   st.markdown(
       f"""
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0px;">
-        <img src="data:image/svg+xml;base64,{logo_b64}" style="height: 38px; width: auto; object-fit: contain; flex-shrink: 0; display: block;" />
+        <div style="height: 38px; display: flex; align-items: center; overflow: visible; flex-shrink: 0;">
+            <img src="data:image/svg+xml;base64,{logo_b64}" style="height: 32px; width: auto; display: block; overflow: visible;" />
+        </div>
         <h1 style="margin: 0; padding: 0; font-size: 1.7rem; font-weight: 700; line-height: 1.1;">CreditLens VAPT Alignment Engine</h1>
     </div>
     """,
