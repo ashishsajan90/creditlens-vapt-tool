@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- CUSTOM CSS FOR COMPACT HEADER & GLOBAL BUTTON STYLING ---
+# --- CUSTOM CSS FOR COMPACT HEADER & CORRECT BUTTON SELECTORS ---
 st.markdown(
     """
     <style>
@@ -37,16 +37,21 @@ st.markdown(
             margin-top: 0.5rem;
             margin-bottom: 0.8rem;
         }
-        /* --- GLOBAL PLEASANT BUTTON STYLING (Main & Sidebar) --- */
-        div.stButton > button, div.stDownloadButton > button, div[data-testid="stSidebar"] button {
+        /* --- ACCURATE BUTTON & DOWNLOAD LINK STYLING --- */
+        div.stButton > button, 
+        div[data-testid="stDownloadButton"] a, 
+        div[data-testid="stDownloadButton"] button {
             background-color: #1F4E78 !important;
             color: #FFFFFF !important;
             border: 1px solid #326294 !important;
             border-radius: 6px !important;
             font-weight: 500 !important;
+            text-decoration: none !important;
             transition: all 0.3s ease !important;
         }
-        div.stButton > button:hover, div.stDownloadButton > button:hover, div[data-testid="stSidebar"] button:hover {
+        div.stButton > button:hover, 
+        div[data-testid="stDownloadButton"] a:hover, 
+        div[data-testid="stDownloadButton"] button:hover {
             background-color: #2E6B9E !important;
             border-color: #4A89C5 !important;
             color: #FFFFFF !important;
@@ -138,7 +143,7 @@ with header_col1:
   st.markdown(
       f"""
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0px;">
-        <img src="data:image/svg+xml;base64,{logo_b64}" width="38" style="flex-shrink: 0; height: auto; display: block;" />
+        <img src="data:image/svg+xml;base64,{logo_b64}" style="height: 38px; width: auto; object-fit: contain; flex-shrink: 0; display: block;" />
         <h1 style="margin: 0; padding: 0; font-size: 1.7rem; font-weight: 700; line-height: 1.1;">CreditLens VAPT Alignment Engine</h1>
     </div>
     """,
