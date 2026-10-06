@@ -125,8 +125,8 @@ with st.sidebar:
     st.warning("Master tracker file not found in root directory.")
 
 
-# Helper to convert local PNG logo to base64 for seamless HTML embedding
-def get_image_base64(path):
+# Helper to convert local SVG to base64 for seamless HTML embedding
+def get_svg_base64(path):
   try:
     with open(path, "rb") as f:
       return base64.b64encode(f.read()).decode()
@@ -134,7 +134,7 @@ def get_image_base64(path):
     return ""
 
 
-logo_b64 = get_image_base64("Logo.svg")
+logo_b64 = get_svg_base64("Logo.svg")
 
 # --- ULTRA-COMPACT TOP DASHBOARD HEADER ---
 header_col1, header_col2 = st.columns([3, 1], vertical_alignment="center")
@@ -144,7 +144,7 @@ with header_col1:
       f"""
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0px; padding-top: 4px;">
         <div style="padding: 3px; display: flex; align-items: center; flex-shrink: 0;">
-            <img src="data:image/png;base64,{logo_b64}" style="height: 32px; width: auto; object-fit: contain; display: block;" />
+            <img src="data:image/svg+xml;base64,{logo_b64}" style="height: 32px; width: auto; object-fit: contain; display: block;" />
         </div>
         <h1 style="margin: 0; padding: 0; font-size: 1.7rem; font-weight: 700; line-height: 1.2;">CreditLens VAPT Alignment Engine</h1>
     </div>
