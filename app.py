@@ -394,9 +394,8 @@ if uploaded_file is not None and not master_df.empty:
           cell.border = thin_border
         ws.row_dimensions[1].height = 28
 
-        # Format Data Rows & Conditional Formatting
+        # Format Data Rows & Conditional Formatting (Row height restriction removed)
         for row_num in range(2, ws.max_row + 1):
-          ws.row_dimensions[row_num].height = 20
           for col_num in range(1, ws.max_column + 1):
             cell = ws.cell(row=row_num, column=col_num)
             cell.font = regular_font
