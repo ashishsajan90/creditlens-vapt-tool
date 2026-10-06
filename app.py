@@ -15,6 +15,25 @@ st.set_page_config(
     layout="wide",
 )
 
+# --- CUSTOM CSS TO REDUCE DEAD SPACE & PADDING ---
+st.markdown(
+    """
+    <style>
+        /* Reduce the massive default top and bottom padding of the app container */
+        .block-container {
+            padding-top: 1.2rem;
+            padding-bottom: 2rem;
+        }
+        /* Tighten divider margins */
+        hr {
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 # Load Master Tracker
 @st.cache_data
@@ -41,22 +60,24 @@ def get_svg_base64(path):
 
 logo_b64 = get_svg_base64("Logo.svg")
 
-# --- TOP DASHBOARD HEADER ---
+# --- COMPACT TOP DASHBOARD HEADER ---
 header_col1, header_col2 = st.columns([3, 1], vertical_alignment="center")
 
 with header_col1:
   st.markdown(
       f"""
-    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 4px;">
-        <img src="data:image/svg+xml;base64,{logo_b64}" width="48" style="flex-shrink: 0;" />
-        <h1 style="margin: 0; padding: 0; font-size: 2.2rem; font-weight: 700; line-height: 1.2;">CreditLens VAPT Alignment Engine</h1>
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0px;">
+        <img src="data:image/svg+xml;base64,{logo_b64}" width="40" style="flex-shrink: 0;" />
+        <h1 style="margin: 0; padding: 0; font-size: 1.8rem; font-weight: 700; line-height: 1.1;">CreditLens VAPT Alignment Engine</h1>
     </div>
     """,
       unsafe_allow_html=True,
   )
   st.markdown(
-      "Automated cross-referencing, semantic vulnerability matching, vendor"
-      " response mapping, and executive report generation."
+      "<p style='margin: 2px 0 0 0; color: #95a5a6; font-size: 0.9rem;'>Automated"
+      " cross-referencing, semantic vulnerability matching, vendor response"
+      " mapping, and executive report generation.</p>",
+      unsafe_allow_html=True,
   )
 
 with header_col2:
@@ -125,6 +146,7 @@ if uploaded_file is not None and not master_df.empty:
 
   if not bank_df.empty:
     st.subheader("📥 Preview of Uploaded Findings")
+    # Display full dataframe (removed .head())
     st.dataframe(bank_df, use_container_width=True)
 
     if st.button("🚀 Run Smart Cross-Reference & Generate Response"):
@@ -321,7 +343,7 @@ if uploaded_file is not None and not master_df.empty:
         final_output.seek(0)
 
         # Filename with Timestamp (dd-mmm-yy hh:mm:ss)
-        timestamp_str = datetime.now().strftime("%d-%b-%y %H:%M:%S")
+        timestamp_str = datetime.now().strftime("%d-%b-%y %H-%M-%S")
         output_filename = f"Enriched_VAPT_Report_{timestamp_str}.xlsx"
 
         st.success("✨ Report successfully generated!")
