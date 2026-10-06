@@ -1,7 +1,7 @@
 import base64
 from datetime import datetime
 import io
-import pandas as pd
+import google.generativeai as genai
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
@@ -14,6 +14,37 @@ st.set_page_config(
     page_icon="favicon.png",
     layout="wide",
 )
+
+# --- INITIALIZE GEMINI API ---
+try:
+  genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+  has_gemini = True
+except Exception:
+  has_gemini = False
+
+
+def ask_gemini_for_analysis(bank_name, bank_desc):
+  if not has_gemini:
+    return "Gemini API key not configured in secrets."
+
+  prompt = f"""
+    You are an expert cybersecurity auditor and risk analyst for enterprise software (Moody's CreditLens).
+    A bank VAPT report returned an unmatched finding:
+    - Vulnerability Name: {bank_name}
+    - Description: {bank_desc}
+
+    Please provide:
+    1. A recommended security category (e.g., Authentication & Session, Injection & Scripting, Security Headers, etc.).
+    2. A suggested risk severity (High, Medium, or Low).
+    3. A professional technical justification or rebuttal note for the vendor.
+    Keep your response concise, structured, and professional.
+    """
+  try:
+    model = genai.GenerativeModel("gemini-2.5-flash")
+    response = model.generate_content(prompt)
+    return response.text
+  except Exception as e:
+    return f"Error communicating with Gemini: {e}"
 
 
 # Load Master Tracker
@@ -55,8 +86,8 @@ with header_col1:
       unsafe_allow_html=True,
   )
   st.markdown(
-      "Automated cross-referencing, semantic vulnerability matching, vendor"
-      " response mapping, and executive report generation."
+      "Automated cross-referencing, semantic vulnerability matching, AI vendor"
+      " analysis, and executive report generation."
   )
 
 with header_col2:
@@ -74,10 +105,9 @@ with st.container():
   st.subheader("📁 Import External Findings")
 
   st.info(
-      "ℹ️ **Supported Formats:** Upload your raw VAPT report as an **Excel"
-      " (.xlsx / .xls)** or **PDF (.pdf)** file. For Excel, ensure the"
-      " Vulnerability Name is in the first column and Description is in the"
-      " second column."
+      "ℹ️️ **Supported Formats:** Upload your raw VAPT report as an **Excel"
+      " (.xlsx / .xls)** or **PDF (.pdf)** file. Unmatched findings will"
+      " automatically be analyzed by Gemini AI."
   )
 
   uploaded_file = st.file_uploader(
@@ -127,10 +157,10 @@ if uploaded_file is not None and not master_df.empty:
     st.subheader("📥 Preview of Uploaded Findings")
     st.dataframe(bank_df.head(), use_container_width=True)
 
-    if st.button("🚀 Run Smart Cross-Reference & Generate Response"):
+    if st.button("🚀 Run Smart Cross-Reference & AI Analysis"):
       with st.spinner(
-          "Analyzing findings with intelligent keyword matching against Master"
-          " Tracker..."
+          "Analyzing findings against Master Tracker and consulting Gemini"
+          " AI..."
       ):
         enriched_rows = []
 
@@ -169,7 +199,7 @@ if uploaded_file is not None and not master_df.empty:
                 highest_score = 0.9
                 best_match = m_idx
 
-            # 3. Keyword / Token overlap check for differently worded issues
+            # 3. Keyword / Token overlap check
             keywords = [
                 w
                 for w in m_name_lower.split()
@@ -210,25 +240,26 @@ if uploaded_file is not None and not master_df.empty:
                 "Suggested Rebuttal": match_record["Client Rebuttal / Notes"],
             })
           else:
+            # Unmatched finding -> Invoke Gemini AI for analysis!
+            ai_analysis = ask_gemini_for_analysis(bank_name, bank_desc)
+
             enriched_rows.append({
                 **row.to_dict(),
-                "Master Tracker Row": "New Finding",
-                "Master Category": "N/A",
-                "Master Severity": "N/A",
+                "Master Tracker Row": "New Finding (Gemini Analyzed)",
+                "Master Category": "Review Required",
+                "Master Severity": "Review Required",
                 "Matched Master Issue": "New / Unmatched Finding",
                 "Master Status": "Requires Review",
-                "Vendor Response": (
-                    "No historical record found in Master Tracker."
-                ),
-                "Suggested Rebuttal": (
-                    "Draft custom response or log for vendor review."
-                ),
+                "Vendor Response": ai_analysis,
+                "Suggested Rebuttal": "Review Gemini AI recommendations above.",
             })
 
         result_df = pd.DataFrame(enriched_rows)
 
         st.divider()
-        st.subheader("📊 Enriched VAPT Report & Smart Action Matrix")
+        st.subheader(
+            "📊 Enriched VAPT Report & Gemini Smart Action Matrix"
+        )
         st.dataframe(result_df, use_container_width=True)
 
         # --- BEAUTIFIED EXCEL EXPORT USING OPENPYXL ---
@@ -324,7 +355,9 @@ if uploaded_file is not None and not master_df.empty:
         timestamp_str = datetime.now().strftime("%d-%b-%y %H-%M-%S")
         output_filename = f"Enriched_VAPT_Report_{timestamp_str}.xlsx"
 
-        st.success("✨ Report successfully generated!")
+        st.success(
+            "✨ Report successfully generated with Gemini AI analysis!"
+        )
 
         st.download_button(
             label="📥 Download The Enriched Report (Excel)",
