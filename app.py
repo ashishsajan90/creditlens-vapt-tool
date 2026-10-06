@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime
 import io
 import pandas as pd
@@ -27,24 +28,31 @@ except Exception as e:
   st.sidebar.error(f"❌ Error loading Master Tracker: {e}")
   master_df = pd.DataFrame()
 
+
+# Helper to convert local SVG to base64 for seamless HTML embedding
+def get_svg_base64(path):
+  try:
+    with open(path, "rb") as f:
+      return base64.b64encode(f.read()).decode()
+  except Exception:
+    return ""
+
+
+logo_b64 = get_svg_base64("Logo.svg")
+
 # --- TOP DASHBOARD HEADER ---
 header_col1, header_col2 = st.columns([3, 1], vertical_alignment="center")
 
 with header_col1:
-  # Create a nested layout for Logo + Title side-by-side
-  logo_col, title_col = st.columns([0.08, 0.92], vertical_alignment="center")
-
-  with logo_col:
-    st.image("Logo.svg", width=45)
-
-  with title_col:
-    # Using a clean markdown header to align perfectly with the logo height
-    st.markdown(
-        "<h1 style='margin: 0; padding: 0; font-size: 1.8rem;'>CreditLens VAPT"
-        " Alignment Engine</h1>",
-        unsafe_allow_html=True,
-    )
-
+  st.markdown(
+      f"""
+    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 4px;">
+        <img src="data:image/svg+xml;base64,{logo_b64}" width="48" style="flex-shrink: 0;" />
+        <h1 style="margin: 0; padding: 0; font-size: 2.2rem; font-weight: 700; line-height: 1.2;">CreditLens VAPT Alignment Engine</h1>
+    </div>
+    """,
+      unsafe_allow_html=True,
+  )
   st.markdown(
       "Automated cross-referencing, semantic vulnerability matching, vendor"
       " response mapping, and executive report generation."
