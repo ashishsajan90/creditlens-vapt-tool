@@ -125,7 +125,7 @@ if uploaded_file is not None and not master_df.empty:
 
   if not bank_df.empty:
     st.subheader("📥 Preview of Uploaded Findings")
-    st.dataframe(bank_df.head(), use_container_width=True)
+    st.dataframe(bank_df, use_container_width=True)
 
     if st.button("🚀 Run Smart Cross-Reference & Generate Response"):
       with st.spinner(
