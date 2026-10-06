@@ -5,6 +5,7 @@ import google.generativeai as genai
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+import pandas as pd
 import pdfplumber
 import streamlit as st
 
@@ -105,7 +106,7 @@ with st.container():
   st.subheader("📁 Import External Findings")
 
   st.info(
-      "ℹ️️ **Supported Formats:** Upload your raw VAPT report as an **Excel"
+      "ℹ️ **Supported Formats:** Upload your raw VAPT report as an **Excel"
       " (.xlsx / .xls)** or **PDF (.pdf)** file. Unmatched findings will"
       " automatically be analyzed by Gemini AI."
   )
