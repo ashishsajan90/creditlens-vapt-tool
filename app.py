@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- CUSTOM CSS TO MINIMIZE HEADER DEAD SPACE ---
+# --- CUSTOM CSS FOR COMPACT HEADER & PLEASANT BUTTON STYLING ---
 st.markdown(
     """
     <style>
@@ -36,6 +36,20 @@ st.markdown(
         hr {
             margin-top: 0.5rem;
             margin-bottom: 0.8rem;
+        }
+        /* --- PLEASANT CUSTOM BUTTON STYLING --- */
+        div.stButton > button, div.stDownloadButton > button {
+            background-color: #1F4E78 !important;
+            color: #FFFFFF !important;
+            border: 1px solid #326294 !important;
+            border-radius: 6px !important;
+            font-weight: 500 !important;
+            transition: all 0.3s ease !important;
+        }
+        div.stButton > button:hover, div.stDownloadButton > button:hover {
+            background-color: #2E6B9E !important;
+            border-color: #4A89C5 !important;
+            color: #FFFFFF !important;
         }
     </style>
     """,
@@ -65,9 +79,7 @@ def validate_file_signature(uploaded_file):
   """
   try:
     header = uploaded_file.read(8)
-    uploaded_file.seek(
-        0
-    )  # Reset pointer back to start for subsequent readers
+    uploaded_file.seek(0)
 
     # 1. Check for PDF signature (%PDF-)
     if header.startswith(b"%PDF"):
@@ -413,7 +425,7 @@ if uploaded_file is not None and not master_df.empty:
         wb.save(final_output)
         final_output.seek(0)
 
-        # Filename with Timestamp (safely using underscore format)
+        # Filename with Timestamp
         timestamp_str = datetime.now().strftime("%d-%b-%y_%H%M%S")
         output_filename = f"Enriched_VAPT_Report_{timestamp_str}.xlsx"
 
