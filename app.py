@@ -48,6 +48,27 @@ st.markdown(
 def load_master_tracker():
   return pd.read_excel("CL_Vulnerability_Master_Tracker.xlsx")
 
+# --- SIDEBAR DOWNLOAD BUTTON FOR MASTER TRACKER ---
+with st.sidebar:
+  st.divider()
+  st.subheader("📋 Master Baseline Template")
+  try:
+    with open("CL_Vulnerability_Master_Tracker.xlsx", "rb") as f:
+      master_file_bytes = f.read()
+
+    st.download_button(
+        label="📥 Download Master Tracker",
+        data=master_file_bytes,
+        file_name="CL_Vulnerability_Master_Tracker.xlsx",
+        mime=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+        help=(
+            "Download the current baseline tracker used for cross-referencing."
+        ),
+    )
+  except Exception:
+    st.warning("Master tracker file not found in root directory.")
 
 # Load data safely
 try:
