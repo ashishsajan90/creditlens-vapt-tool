@@ -1,23 +1,17 @@
 from datetime import datetime
 import io
 import pandas as pd
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 import streamlit as st
 
 # Page Configuration
 st.set_page_config(
-    page_title="CreditLens VAPT Cross-Referencer",
-    page_icon="favicon.png",  # <--- Cleaned up without the hidden character
+    page_title="CreditLens VAPT Alignment Engine",
+    page_icon="favicon.png",
     layout="wide",
 )
-
-st.title("🛡️ CreditLens VAPT Report Cross-Referencer & Team Assistant")
-st.markdown("""
-Upload a bank's raw VAPT Excel sheet below. The app uses **Smart Semantic Matching** to detect 
-recurring vulnerabilities even when phrased with different wording, pulls Moody's responses, and generates a beautified report.
-""")
 
 
 # Load Master Tracker
@@ -26,21 +20,48 @@ def load_master_tracker():
   return pd.read_excel("CL_Vulnerability_Master_Tracker.xlsx")
 
 
+# Load data safely
 try:
   master_df = load_master_tracker()
-  st.sidebar.success(
-      f"✅ Master Tracker Loaded Successfully ({len(master_df)} known issues"
-      " indexed)."
-  )
 except Exception as e:
   st.sidebar.error(f"❌ Error loading Master Tracker: {e}")
   master_df = pd.DataFrame()
 
-# File Uploader for Bank VAPT Report
+# --- TOP DASHBOARD HEADER ---
+header_col1, header_col2 = st.columns([3, 1])
+
+with header_col1:
+  st.title("🛡️ CreditLens VAPT Alignment Engine")
+  st.markdown(
+      "Automated cross-referencing, semantic vulnerability matching, vendor"
+      " response mapping, and executive report generation."
+  )
+
+with header_col2:
+  if not master_df.empty:
+    st.metric(
+        label="Master Baseline",
+        value=f"{len(master_df)} Issues",
+        delta="Synced & Active",
+    )
+
 st.divider()
-uploaded_file = st.file_uploader(
-    "📂 Upload Bank VAPT Excel Report (.xlsx)", type=["xlsx", "xls"]
-)
+
+# --- UPLOAD SECTION IN A CLEAN CONTAINER ---
+with st.container():
+  st.subheader("📁 Step 1: Import External Findings")
+
+  st.info(
+      "ℹ️ **Expected File Format:** Ensure your uploaded Excel file is"
+      " structured with the **Vulnerability Name in the first column** and the"
+      " **Vulnerability Description & Impact in the second column**."
+  )
+
+  uploaded_file = st.file_uploader(
+      "Upload the client or bank raw VAPT Excel report (.xlsx or .xls)",
+      type=["xlsx", "xls"],
+      help="Column 1: Vulnerability Name | Column 2: Description & Impact",
+  )
 
 if uploaded_file is not None and not master_df.empty:
   bank_df = pd.read_excel(uploaded_file)
@@ -57,12 +78,12 @@ if uploaded_file is not None and not master_df.empty:
 
       for idx, row in bank_df.iterrows():
         bank_name = str(
-            row.get("Vulnerability Name", row.get("Issue", ""))
+            row.get("Vulnerability Name", row.iloc[0] if len(row) > 0 else "")
         ).strip()
         bank_desc = str(
             row.get(
                 "Vulnerability Description & Impact",
-                row.get("Description", ""),
+                row.iloc[1] if len(row) > 1 else "",
             )
         ).strip()
         bank_combined = f"{bank_name} {bank_desc}".lower()
@@ -120,9 +141,6 @@ if uploaded_file is not None and not master_df.empty:
           excel_row_num = match_idx + 2
           match_record = master_df.iloc[match_idx]
 
-          label_prefix = (
-              "Row" if highest_score >= 0.9 else f"Row {excel_row_num} (Similar)"
-          )
           enriched_rows.append({
               **row.to_dict(),
               "Master Tracker Row": f"Row {excel_row_num}",
@@ -161,25 +179,23 @@ if uploaded_file is not None and not master_df.empty:
         result_df.to_excel(writer, index=False, sheet_name="Enriched Report")
 
       output.seek(0)
-      from openpyxl import load_workbook
-
       wb = load_workbook(output)
       ws = wb.active
 
       # Styling Definitions
       header_fill = PatternFill(
           start_color="1F4E78", end_color="1F4E78", fill_type="solid"
-      )  # Dark Blue
+      )
       header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
 
       green_fill = PatternFill(
           start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"
-      )  # Soft Green for Matched
+      )
       green_font = Font(name="Calibri", size=10, color="006100", bold=True)
 
       red_fill = PatternFill(
           start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"
-      )  # Soft Red for New Findings
+      )
       red_font = Font(name="Calibri", size=10, color="9C0006", bold=True)
 
       regular_font = Font(name="Calibri", size=10)
@@ -250,9 +266,7 @@ if uploaded_file is not None and not master_df.empty:
       timestamp_str = datetime.now().strftime("%d-%b-%y %H-%M-%S")
       output_filename = f"Enriched_VAPT_Report_{timestamp_str}.xlsx"
 
-      st.success(
-          "✨ Smart cross-reference and beautified export completed successfully!"
-      )
+      st.success("✨ Report successfully styled and generated!")
 
       st.download_button(
           label="📥 Download Beautified Enriched Report (Excel)",
