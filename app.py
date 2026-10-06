@@ -30,20 +30,26 @@ def ask_gemini_for_analysis(bank_name, bank_desc):
 
   prompt = f"""
     You are an expert cybersecurity auditor and risk analyst for enterprise software (Moody's CreditLens).
-    A bank VAPT report returned an unmatched finding:
-    - Vulnerability Name: {bank_name}
+    Analyze the following text extracted from a VAPT report table cell:
+    - Title/Name: {bank_name}
     - Description: {bank_desc}
 
-    Please provide:
+    CRITICAL INSTRUCTION:
+    First, determine if this text represents a genuine security vulnerability or if it is merely document metadata, administrative details, revision history, table headers, document ownership, or contact info (e.g., author, date, version, confidentiality, document status).
+    
+    If it is document metadata or NOT a security vulnerability, respond with EXACTLY this text and nothing else:
+    SKIP_METADATA
+
+    If it IS a legitimate security vulnerability, provide:
     1. A recommended security category (e.g., Authentication & Session, Injection & Scripting, Security Headers, etc.).
     2. A suggested risk severity (High, Medium, or Low).
     3. A professional technical justification or rebuttal note for the vendor.
     Keep your response concise, structured, and professional.
     """
   try:
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel("gemini-3.8-flash")
     response = model.generate_content(prompt)
-    return response.text
+    return response.text.strip()
   except Exception as e:
     return f"Error communicating with Gemini: {e}"
 
@@ -107,8 +113,8 @@ with st.container():
 
   st.info(
       "ℹ️ **Supported Formats:** Upload your raw VAPT report as an **Excel"
-      " (.xlsx / .xls)** or **PDF (.pdf)** file. Unmatched findings will"
-      " automatically be analyzed by Gemini AI."
+      " (.xlsx / .xls)** or **PDF (.pdf)** file. Document metadata tables will"
+      " be automatically filtered out."
   )
 
   uploaded_file = st.file_uploader(
@@ -125,43 +131,62 @@ if uploaded_file is not None and not master_df.empty:
   if file_extension in ["xlsx", "xls"]:
     bank_df = pd.read_excel(uploaded_file)
   elif file_extension == "pdf":
-    with st.spinner("Extracting tables from PDF report..."):
+    with st.spinner("Extracting and filtering tables from PDF report..."):
       extracted_rows = []
+      # Blacklist keywords to filter out document metadata during parsing
+      metadata_keywords = [
+          "owner",
+          "author",
+          "version",
+          "classification",
+          "document id",
+          "prepared by",
+          "reviewed by",
+          "approved by",
+          "creation date",
+          "revision",
+          "distribution",
+          "confidentiality",
+      ]
+
       try:
         with pdfplumber.open(uploaded_file) as pdf:
           for page in pdf.pages:
             tables = page.extract_tables()
             for table in tables:
               for row in table:
-                if (
-                    len(row) >= 2
-                    and row[0]
-                    and row[1]
-                    and "vulnerability" not in str(row[0]).lower()
-                ):
-                  extracted_rows.append({
-                      "Vulnerability Name": str(row[0]).strip(),
-                      "Vulnerability Description & Impact": str(row[1]).strip(),
-                  })
+                if len(row) >= 2 and row[0] and row[1]:
+                  row_text_lower = f"{str(row[0])} {str(row[1])}".lower()
+                  # Check if row contains metadata keywords
+                  is_metadata = any(
+                      kw in row_text_lower for kw in metadata_keywords
+                  )
+                  is_header = "vulnerability" in str(row[0]).lower()
+
+                  if not is_metadata and not is_header:
+                    extracted_rows.append({
+                        "Vulnerability Name": str(row[0]).strip(),
+                        "Vulnerability Description & Impact": str(row[1]).strip(),
+                    })
         bank_df = pd.DataFrame(extracted_rows)
       except Exception as e:
         st.error(f"❌ Error reading PDF file: {e}")
 
     if bank_df.empty:
       st.warning(
-          "⚠️ Could not automatically extract structured tables from this PDF."
-          " Please ensure the PDF has clean formatted tables or use an Excel"
-          " sheet."
+          "⚠️ Could not automatically extract structured vulnerability tables"
+          " from this PDF. Please ensure the PDF has clean vulnerability tables"
+          " or use an Excel sheet."
       )
 
   if not bank_df.empty:
-    st.subheader("📥 Preview of Uploaded Findings")
+    st.subheader("📥 Preview of Filtered Findings")
     st.dataframe(bank_df.head(), use_container_width=True)
 
     if st.button("🚀 Run Smart Cross-Reference & AI Analysis"):
       with st.spinner(
-          "Analyzing findings against Master Tracker and consulting Gemini"
-          " AI..."
+          "Filtering metadata, matching against Master Tracker, and consulting"
+          " Gemini AI..."
       ):
         enriched_rows = []
 
@@ -241,8 +266,12 @@ if uploaded_file is not None and not master_df.empty:
                 "Suggested Rebuttal": match_record["Client Rebuttal / Notes"],
             })
           else:
-            # Unmatched finding -> Invoke Gemini AI for analysis!
+            # Unmatched finding -> Consult Gemini AI
             ai_analysis = ask_gemini_for_analysis(bank_name, bank_desc)
+
+            # If Gemini flags it as document metadata, skip it entirely!
+            if "SKIP_METADATA" in ai_analysis:
+              continue
 
             enriched_rows.append({
                 **row.to_dict(),
@@ -257,114 +286,121 @@ if uploaded_file is not None and not master_df.empty:
 
         result_df = pd.DataFrame(enriched_rows)
 
-        st.divider()
-        st.subheader(
-            "📊 Enriched VAPT Report & Gemini Smart Action Matrix"
-        )
-        st.dataframe(result_df, use_container_width=True)
-
-        # --- BEAUTIFIED EXCEL EXPORT USING OPENPYXL ---
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-          result_df.to_excel(writer, index=False, sheet_name="Enriched Report")
-
-        output.seek(0)
-        wb = load_workbook(output)
-        ws = wb.active
-
-        # Styling Definitions
-        header_fill = PatternFill(
-            start_color="1F4E78", end_color="1F4E78", fill_type="solid"
-        )
-        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-
-        green_fill = PatternFill(
-            start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"
-        )
-        green_font = Font(name="Calibri", size=10, color="006100", bold=True)
-
-        red_fill = PatternFill(
-            start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"
-        )
-        red_font = Font(name="Calibri", size=10, color="9C0006", bold=True)
-
-        regular_font = Font(name="Calibri", size=10)
-        thin_border = Border(
-            left=Side(style="thin", color="D9D9D9"),
-            right=Side(style="thin", color="D9D9D9"),
-            top=Side(style="thin", color="D9D9D9"),
-            bottom=Side(style="thin", color="D9D9D9"),
-        )
-
-        # Locate Master Tracker Row column
-        master_row_col_idx = None
-        for col_num in range(1, ws.max_column + 1):
-          if ws.cell(row=1, column=col_num).value == "Master Tracker Row":
-            master_row_col_idx = col_num
-            break
-
-        # Format Header Row
-        for col_num in range(1, ws.max_column + 1):
-          cell = ws.cell(row=1, column=col_num)
-          cell.fill = header_fill
-          cell.font = header_font
-          cell.alignment = Alignment(
-              horizontal="center", vertical="center", wrap_text=True
+        if result_df.empty:
+          st.warning(
+              "⚠️ All extracted rows were identified as document metadata and"
+              " filtered out. Please check your uploaded report."
           )
-          cell.border = thin_border
-        ws.row_dimensions[1].height = 28
+        else:
+          st.divider()
+          st.subheader(
+              "📊 Enriched VAPT Report & Gemini Smart Action Matrix"
+          )
+          st.dataframe(result_df, use_container_width=True)
 
-        # Format Data Rows & Conditional Formatting
-        for row_num in range(2, ws.max_row + 1):
-          ws.row_dimensions[row_num].height = 20
+          # --- BEAUTIFIED EXCEL EXPORT USING OPENPYXL ---
+          output = io.BytesIO()
+          with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            result_df.to_excel(writer, index=False, sheet_name="Enriched Report")
+
+          output.seek(0)
+          wb = load_workbook(output)
+          ws = wb.active
+
+          # Styling Definitions
+          header_fill = PatternFill(
+              start_color="1F4E78", end_color="1F4E78", fill_type="solid"
+          )
+          header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+
+          green_fill = PatternFill(
+              start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"
+          )
+          green_font = Font(name="Calibri", size=10, color="006100", bold=True)
+
+          red_fill = PatternFill(
+              start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"
+          )
+          red_font = Font(name="Calibri", size=10, color="9C0006", bold=True)
+
+          regular_font = Font(name="Calibri", size=10)
+          thin_border = Border(
+              left=Side(style="thin", color="D9D9D9"),
+              right=Side(style="thin", color="D9D9D9"),
+              top=Side(style="thin", color="D9D9D9"),
+              bottom=Side(style="thin", color="D9D9D9"),
+          )
+
+          # Locate Master Tracker Row column
+          master_row_col_idx = None
           for col_num in range(1, ws.max_column + 1):
-            cell = ws.cell(row=row_num, column=col_num)
-            cell.font = regular_font
+            if ws.cell(row=1, column=col_num).value == "Master Tracker Row":
+              master_row_col_idx = col_num
+              break
+
+          # Format Header Row
+          for col_num in range(1, ws.max_column + 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(
+                horizontal="center", vertical="center", wrap_text=True
+            )
             cell.border = thin_border
-            cell.alignment = Alignment(vertical="center", wrap_text=True)
+          ws.row_dimensions[1].height = 28
 
-            if col_num == master_row_col_idx:
-              cell.alignment = Alignment(
-                  horizontal="center", vertical="center", wrap_text=True
-              )
-              val = str(cell.value)
-              if "Row" in val:
-                cell.fill = green_fill
-                cell.font = green_font
-              else:
-                cell.fill = red_fill
-                cell.font = red_font
+          # Format Data Rows & Conditional Formatting
+          for row_num in range(2, ws.max_row + 1):
+            ws.row_dimensions[row_num].height = 20
+            for col_num in range(1, ws.max_column + 1):
+              cell = ws.cell(row=row_num, column=col_num)
+              cell.font = regular_font
+              cell.border = thin_border
+              cell.alignment = Alignment(vertical="center", wrap_text=True)
 
-        # Auto-adjust column widths
-        for col in ws.columns:
-          max_len = 0
-          col_letter = get_column_letter(col[0].column)
-          for cell in col:
-            if cell.value:
-              val_str = str(cell.value)
-              if len(val_str) > 50:
-                val_str = val_str[:50]
-              max_len = max(max_len, len(val_str))
-          ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
+              if col_num == master_row_col_idx:
+                cell.alignment = Alignment(
+                    horizontal="center", vertical="center", wrap_text=True
+                )
+                val = str(cell.value)
+                if "Row" in val:
+                  cell.fill = green_fill
+                  cell.font = green_font
+                else:
+                  cell.fill = red_fill
+                  cell.font = red_font
 
-        # Save workbook
-        final_output = io.BytesIO()
-        wb.save(final_output)
-        final_output.seek(0)
+          # Auto-adjust column widths
+          for col in ws.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+              if cell.value:
+                val_str = str(cell.value)
+                if len(val_str) > 50:
+                  val_str = val_str[:50]
+                max_len = max(max_len, len(val_str))
+            ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
 
-        # Filename with Timestamp (dd-mmm-yy hh:mm:ss)
-        timestamp_str = datetime.now().strftime("%d-%b-%y %H-%M-%S")
-        output_filename = f"Enriched_VAPT_Report_{timestamp_str}.xlsx"
+          # Save workbook
+          final_output = io.BytesIO()
+          wb.save(final_output)
+          final_output.seek(0)
 
-        st.success(
-            "✨ Report successfully generated with Gemini AI analysis!"
-        )
+          # Filename with Timestamp (dd-mmm-yy hh:mm:ss)
+          timestamp_str = datetime.now().strftime("%d-%b-%y %H-%M-%S")
+          output_filename = f"Enriched_VAPT_Report_{timestamp_str}.xlsx"
 
-        st.download_button(
-            label="📥 Download The Enriched Report (Excel)",
-            data=final_output,
-            file_name=output_filename,
-            mime=(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            ),
-        )
+          st.success(
+              "✨ Report successfully generated, metadata filtered, and"
+              " analyzed!"
+          )
+
+          st.download_button(
+              label="📥 Download The Enriched Report (Excel)",
+              data=final_output,
+              file_name=output_filename,
+              mime=(
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              ),
+          )
