@@ -18,7 +18,7 @@ the findings against your consolidated Master Tracker, pull Moody's responses, a
 # Load Master Tracker
 @st.cache_data
 def load_master_tracker():
-  return pd.read_excel("Moodys_CreditLens_Vulnerability_Master_Tracker.xlsx")
+  return pd.read_excel("CL_Vulnerability_Master_Tracker.xlsx")
 
 
 try:
@@ -29,6 +29,10 @@ try:
   )
 except Exception as e:
   st.sidebar.error(f"❌ Error loading Master Tracker: {e}")
+  st.sidebar.info(
+      "Make sure 'CL_Vulnerability_Master_Tracker.xlsx' is in the same folder as"
+      " app.py."
+  )
   master_df = pd.DataFrame()
 
 # File Uploader for Bank VAPT Report
@@ -52,7 +56,6 @@ if uploaded_file is not None and not master_df.empty:
             row.get("Vulnerability Name", row.get("Issue", ""))
         ).strip()
 
-        # NOTE: regex=False is added here so parentheses/special characters are matched literally!
         matched = master_df[
             master_df["Vulnerability Name"].str.contains(
                 issue_name, case=False, na=False, regex=False
@@ -60,7 +63,6 @@ if uploaded_file is not None and not master_df.empty:
         ]
 
         if not matched.empty:
-          # Get the matching row index. In Excel, row number is index + 2 (accounting for header row)
           match_idx = matched.index[0]
           excel_row_num = match_idx + 2
           match_record = matched.iloc[0]
